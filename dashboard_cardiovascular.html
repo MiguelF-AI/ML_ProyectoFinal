@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard ML — Cardiovascular Disease</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2230;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #e85d75;
+    --accent2: #3fb68b;
+    --accent3: #f0a500;
+    --accent4: #5b8af5;
+    --accent5: #b07aff;
+    --danger: #f47067;
+    --success: #3fb68b;
+    --warn: #f0a500;
+    --font-head: 'DM Serif Display', serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --r: 10px;
+    --r2: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px 20px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .header-left h1 {
+    font-family: var(--font-head);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .header-left h1 span { color: var(--accent); font-style: italic; }
+  .header-left p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 300;
+  }
+  .header-badge {
+    background: rgba(232,93,117,0.12);
+    border: 1px solid rgba(232,93,117,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  /* NAV TABS */
+  .nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 14px 20px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* MAIN */
+  .main { padding: 32px 40px; max-width: 1200px; margin: 0 auto; }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* KPI STRIP */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .kpi {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px 18px;
+    transition: border-color 0.2s;
+  }
+  .kpi:hover { border-color: var(--border2); }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+  }
+  .kpi-val {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-sub { font-size: 11px; color: var(--muted); font-weight: 300; }
+  .kpi-val.red { color: var(--accent); }
+  .kpi-val.green { color: var(--accent2); }
+  .kpi-val.blue { color: var(--accent4); }
+  .kpi-val.amber { color: var(--accent3); }
+  .kpi-val.purple { color: var(--accent5); }
+
+  /* CARDS */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 22px 24px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .mb16 { margin-bottom: 16px; }
+  .mb28 { margin-bottom: 28px; }
+
+  /* RANK BARS */
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-model {
+    width: 150px;
+    font-size: 13px;
+    font-weight: 500;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rank-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .rank-track {
+    flex: 1;
+    background: var(--bg3);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .rank-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+  .rank-num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    width: 50px;
+    text-align: right;
+  }
+  .badge-best {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(63,182,139,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(63,182,139,0.3);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-family: var(--font-mono);
+  }
+  .badge-warn {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(240,165,0,0.12);
+    color: var(--accent3);
+    border: 1px solid rgba(240,165,0,0.3);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-family: var(--font-mono);
+  }
+  .badge-low {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(232,93,117,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(232,93,117,0.3);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-family: var(--font-mono);
+  }
+
+  /* CONFUSION MATRIX */
+  .cm-wrap { margin-top: 4px; }
+  .cm-axis-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .cm-grid {
+    display: grid;
+    grid-template-columns: 26px 1fr 1fr;
+    grid-template-rows: 26px 1fr 1fr;
+    gap: 4px;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .cm-cell {
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+  .cm-corner { background: transparent; }
+  .cm-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    writing-mode: horizontal-tb;
+  }
+  .cm-hdr.vert { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; }
+  .cm-tp { background: rgba(63,182,139,0.18); border: 1px solid rgba(63,182,139,0.3); }
+  .cm-tn { background: rgba(63,182,139,0.11); border: 1px solid rgba(63,182,139,0.2); }
+  .cm-fp { background: rgba(232,93,117,0.13); border: 1px solid rgba(232,93,117,0.25); }
+  .cm-fn { background: rgba(240,165,0,0.14); border: 1px solid rgba(240,165,0,0.28); }
+  .cm-val { font-size: 18px; font-weight: 600; font-family: var(--font-mono); }
+  .cm-lbl { font-size: 9px; margin-top: 2px; font-weight: 500; letter-spacing: 0.04em; font-family: var(--font-mono); }
+  .cm-tp .cm-val, .cm-tn .cm-val { color: var(--accent2); }
+  .cm-fp .cm-val { color: var(--accent); }
+  .cm-fn .cm-val { color: var(--accent3); }
+  .cm-tp .cm-lbl { color: rgba(63,182,139,0.7); }
+  .cm-tn .cm-lbl { color: rgba(63,182,139,0.5); }
+  .cm-fp .cm-lbl { color: rgba(232,93,117,0.7); }
+  .cm-fn .cm-lbl { color: rgba(240,165,0,0.7); }
+
+  /* MODEL SELECTOR */
+  .model-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .model-tab {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.2s;
+    font-family: var(--font-mono);
+  }
+  .model-tab:hover { color: var(--text); border-color: var(--border2); }
+  .model-tab.active {
+    background: rgba(232,93,117,0.12);
+    border-color: rgba(232,93,117,0.4);
+    color: var(--accent);
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* INSIGHT BOX */
+  .insight {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent4);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-top: 14px;
+  }
+  .insight strong { color: var(--text); font-weight: 500; }
+
+  /* FEATURE TABLE */
+  .feat-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .feat-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .feat-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .feat-table tr:last-child td { border-bottom: none; }
+  .feat-table tr:hover td { background: rgba(255,255,255,0.025); }
+  .type-num { color: var(--accent4); }
+  .type-cat { color: var(--accent5); }
+  .type-bin { color: var(--accent2); }
+
+  /* CHART WRAPPER */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* PREDICTION PANEL */
+  .pred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .slider-group { display: flex; flex-direction: column; gap: 14px; }
+  .slider-row { display: flex; flex-direction: column; gap: 6px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center; }
+  .slider-name { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .slider-val {
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    min-width: 50px;
+    text-align: center;
+  }
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    appearance: none;
+    background: var(--bg3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg2);
+  }
+  .pred-result-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 320px;
+    gap: 16px;
+  }
+  .pred-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    transition: all 0.4s;
+  }
+  .pred-icon.risk { background: rgba(232,93,117,0.2); border: 2px solid rgba(232,93,117,0.5); }
+  .pred-icon.safe { background: rgba(63,182,139,0.2); border: 2px solid rgba(63,182,139,0.4); }
+  .pred-label { font-family: var(--font-head); font-size: 24px; font-weight: 400; line-height: 1.1; }
+  .pred-label.risk { color: var(--accent); }
+  .pred-label.safe { color: var(--accent2); }
+  .pred-conf-text { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .pred-bars { width: 100%; }
+  .pred-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 11px; font-family: var(--font-mono); color: var(--muted); }
+  .pred-bar-name { width: 70px; text-align: right; flex-shrink: 0; font-size: 10px; }
+  .pred-bar-track { flex: 1; background: var(--bg); border-radius: 3px; height: 5px; overflow: hidden; }
+  .pred-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s; }
+  .pred-bar-pct { width: 38px; text-align: right; flex-shrink: 0; }
+  .disclaimer {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.6;
+    text-align: center;
+    font-family: var(--font-mono);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel.active > * { animation: fadeInUp 0.35s ease both; }
+  .panel.active > *:nth-child(2) { animation-delay: 0.04s; }
+  .panel.active > *:nth-child(3) { animation-delay: 0.08s; }
+  .panel.active > *:nth-child(4) { animation-delay: 0.12s; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media (max-width: 700px) {
+    .header { padding: 18px 20px; flex-direction: column; align-items: flex-start; }
+    .main { padding: 20px; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3, .pred-grid { grid-template-columns: 1fr; }
+    .nav { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>ML Dashboard — <span>Cardiovascular Disease</span></h1>
+    <p>66,196 pacientes · 18 features · 5 modelos entrenados · Clasificación binaria (cardio: 0/1)</p>
+  </div>
+  <div class="header-badge">Proyecto Final ML</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="switchTab('resumen', this)">Resumen general</button>
+  <button class="nav-btn" onclick="switchTab('metricas', this)">Métricas detalladas</button>
+  <button class="nav-btn" onclick="switchTab('confusion', this)">Matriz de confusión</button>
+  <button class="nav-btn" onclick="switchTab('dataset', this)">Dataset</button>
+  <!-- <button class="nav-btn" onclick="switchTab('prediccion', this)">Predicción interactiva</button> -->
+</nav>
+
+<div class="main">
+
+  <!-- ===== RESUMEN ===== -->
+  <div id="tab-resumen" class="panel active">
+    <div class="kpi-strip">
+      <div class="kpi">
+        <div class="kpi-label">Mejor accuracy</div>
+        <div class="kpi-val red">72.8%</div>
+        <div class="kpi-sub">Red Neuronal</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total pacientes</div>
+        <div class="kpi-val blue">66,196</div>
+        <div class="kpi-sub">Test: 13,240</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Modelos</div>
+        <div class="kpi-val amber">5</div>
+        <div class="kpi-sub">SVM · DT · NN · LR · KM</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Mejor F1-Score</div>
+        <div class="kpi-val green">70.2%</div>
+        <div class="kpi-sub">Red Neuronal</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">FN crítico mín.</div>
+        <div class="kpi-val purple">2,192</div>
+        <div class="kpi-sub">Árbol de Decisión</div>
+      </div>
+    </div>
+
+    <div class="card mb28">
+      <div class="card-title">Ranking por Accuracy</div>
+      <div id="rank-accuracy"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">F1-Score por modelo</div>
+        <div class="chart-wrap" style="height:220px;">
+          <canvas id="chart-f1" role="img" aria-label="F1-Score de los 5 modelos"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Precision vs Recall</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:#5b8af5"></div>Precision</div>
+          <div class="legend-item"><div class="legend-sq" style="background:#e85d75"></div>Recall</div>
+        </div>
+        <div class="chart-wrap" style="height:190px;">
+          <canvas id="chart-prec-rec" role="img" aria-label="Precision y Recall de los 5 modelos"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MÉTRICAS ===== -->
+  <div id="tab-metricas" class="panel">
+    <div class="card mb16">
+      <div class="card-title">Tabla comparativa completa</div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="chart-radar" role="img" aria-label="Radar comparativo de métricas por modelo"></canvas>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Accuracy detallado</div>
+        <div class="chart-wrap" style="height:240px;">
+          <canvas id="chart-acc-h" role="img" aria-label="Accuracy horizontal por modelo"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Análisis clínico — Error Tipo 2 (FN)</div>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5;">Enfermos enviados a casa sin diagnóstico. En un contexto clínico, minimizar FN es prioritario.</p>
+        <div id="rank-fn"></div>
+        <div class="insight">
+          <strong>Insight clínico:</strong> El Árbol de Decisión tiene el menor número de Falsos Negativos (2,192), lo que lo hace médicamente más seguro a pesar de tener menor accuracy que la Red Neuronal.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONFUSIÓN ===== -->
+  <div id="tab-confusion" class="panel">
+    <div class="model-tabs" id="cm-model-tabs">
+      <button class="model-tab active" onclick="showCM('nn', this)">Red Neuronal</button>
+      <button class="model-tab" onclick="showCM('lr', this)">Reg. Logística</button>
+      <button class="model-tab" onclick="showCM('dt', this)">Árbol Decisión</button>
+      <button class="model-tab" onclick="showCM('svm', this)">SVM</button>
+      <button class="model-tab" onclick="showCM('km', this)">K-Means</button>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title" id="cm-title">Matriz de confusión — Red Neuronal</div>
+        <div class="cm-wrap">
+          <div class="cm-axis-label" style="margin-left:30px;">← Predicho →</div>
+          <div class="cm-grid">
+            <div class="cm-cell cm-corner"></div>
+            <div class="cm-cell cm-hdr">Pred. Sano</div>
+            <div class="cm-cell cm-hdr">Pred. Enfermo</div>
+            <div class="cm-cell cm-hdr vert">Real Sano</div>
+            <div class="cm-cell cm-tn">
+              <div class="cm-val" id="cm-tn">5408</div>
+              <div class="cm-lbl">TN</div>
+            </div>
+            <div class="cm-cell cm-fp">
+              <div class="cm-val" id="cm-fp">1397</div>
+              <div class="cm-lbl">FP · Error T1</div>
+            </div>
+            <div class="cm-cell cm-hdr vert">Real Enfermo</div>
+            <div class="cm-cell cm-fn">
+              <div class="cm-val" id="cm-fn">2200</div>
+              <div class="cm-lbl">FN · Error T2</div>
+            </div>
+            <div class="cm-cell cm-tp">
+              <div class="cm-val" id="cm-tp">4235</div>
+              <div class="cm-lbl">TP</div>
+            </div>
+          </div>
+        </div>
+        <div class="insight" id="cm-insight" style="margin-top:16px;">
+          <strong>Red Neuronal:</strong> Detecta correctamente 4,235 enfermos. Envía a casa 2,200 pacientes enfermos sin diagnóstico (FN).
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Comparativa de errores clínicos</div>
+        <div class="chart-wrap" style="height:280px;">
+          <canvas id="chart-errors" role="img" aria-label="Comparativa de FP y FN por modelo"></canvas>
+        </div>
+        <div class="insight">
+          <strong>Error Tipo 1 (FP):</strong> Paciente sano clasificado como enfermo → alarma innecesaria.<br>
+          <strong>Error Tipo 2 (FN):</strong> Paciente enfermo clasificado como sano → riesgo de vida.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DATASET ===== -->
+  <div id="tab-dataset" class="panel">
+    <div class="kpi-strip" style="grid-template-columns: repeat(4,1fr)">
+      <div class="kpi">
+        <div class="kpi-label">Registros totales</div>
+        <div class="kpi-val blue">66,196</div>
+        <div class="kpi-sub">Después de limpieza</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Features</div>
+        <div class="kpi-val amber">18</div>
+        <div class="kpi-sub">6 float · 11 int · 1 obj</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Variable objetivo</div>
+        <div class="kpi-val red">cardio</div>
+        <div class="kpi-sub">Binaria: 0=Sano · 1=Enfermo</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Set de prueba</div>
+        <div class="kpi-val green">13,240</div>
+        <div class="kpi-sub">20% del total</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Diccionario de features</div>
+        <table class="feat-table">
+          <thead>
+            <tr><th>#</th><th>Feature</th><th>Tipo</th><th>Descripción</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>gender</td><td><span class="type-bin">binaria</span></td><td>Sexo del paciente</td></tr>
+            <tr><td>1</td><td>height</td><td><span class="type-num">float64</span></td><td>Altura (cm)</td></tr>
+            <tr><td>2</td><td>weight</td><td><span class="type-num">float64</span></td><td>Peso (kg)</td></tr>
+            <tr><td>3</td><td>ap_hi</td><td><span class="type-num">float64</span></td><td>Presión sistólica</td></tr>
+            <tr><td>4</td><td>ap_lo</td><td><span class="type-num">float64</span></td><td>Presión diastólica</td></tr>
+            <tr><td>5</td><td>smoke</td><td><span class="type-bin">binaria</span></td><td>Fumador</td></tr>
+            <tr><td>6</td><td>alco</td><td><span class="type-bin">binaria</span></td><td>Consumo de alcohol</td></tr>
+            <tr><td>7</td><td>active</td><td><span class="type-bin">binaria</span></td><td>Actividad física</td></tr>
+            <tr><td>8</td><td>bmi</td><td><span class="type-num">float64</span></td><td>Índice de masa corporal</td></tr>
+            <tr><td>9</td><td>age_years</td><td><span class="type-num">float64</span></td><td>Edad en años</td></tr>
+            <tr><td>10</td><td>bp_category_encoded</td><td><span class="type-cat">object</span></td><td>Categoría de presión</td></tr>
+            <tr><td>11-13</td><td>cholesterol_1/2/3</td><td><span class="type-bin">int64</span></td><td>Niveles de colesterol</td></tr>
+            <tr><td>14-16</td><td>gluc_1/2/3</td><td><span class="type-bin">int64</span></td><td>Niveles de glucosa</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribución de clases (target)</div>
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="chart-dist" role="img" aria-label="Distribución de clases sano vs enfermo"></canvas>
+        </div>
+        <div class="insight" style="margin-top:14px;">
+          El dataset está <strong>balanceado</strong> (≈50% sano / 50% enfermo), lo que garantiza que las métricas de accuracy son representativas sin sesgo de clase.
+        </div>
+        <div class="chart-wrap" style="height:160px; margin-top:14px;">
+          <canvas id="chart-dtypes" role="img" aria-label="Tipos de datos del dataset"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PREDICCIÓN ===== -->
+  <div id="tab-prediccion" class="panel">
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.6;">
+      Ajusta los parámetros del paciente y observa cómo cada modelo evalúa el riesgo cardiovascular. Los resultados son aproximaciones basadas en los patrones aprendidos.
+    </p>
+    <div class="pred-grid">
+      <div class="card">
+        <div class="card-title">Parámetros del paciente</div>
+        <div class="slider-group">
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-name">Edad (años)</span>
+              <span class="slider-val" id="val-age">50</span>
+            </div>
+            <input type="range" min="20" max="80" value="50" id="sl-age" oninput="predict()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-name">Presión sistólica</span>
+              <span class="slider-val" id="val-ap_hi">120</span>
+            </div>
+            <input type="range" min="80" max="220" value="120" id="sl-ap_hi" oninput="predict()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-name">Presión diastólica</span>
+              <span class="slider-val" id="val-ap_lo">80</span>
+            </div>
+            <input type="range" min="40" max="140" value="80" id="sl-ap_lo" oninput="predict()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-name">BMI</span>
+              <span class="slider-val" id="val-bmi">24.0</span>
+            </div>
+            <input type="range" min="15" max="45" step="0.5" value="24" id="sl-bmi" oninput="predict()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-name">Colesterol (nivel 1-3)</span>
+              <span class="slider-val" id="val-chol">1</span>
+            </div>
+            <input type="range" min="1" max="3" step="1" value="1" id="sl-chol" oninput="predict()">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-name">Glucosa (nivel 1-3)</span>
+              <span class="slider-val" id="val-gluc">1</span>
+            </div>
+            <input type="range" min="1" max="3" step="1" value="1" id="sl-gluc" oninput="predict()">
+          </div>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer; font-family:var(--font-mono);">
+            <input type="checkbox" id="cb-smoke" onchange="predict()"> Fumador
+          </label>
+          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer; font-family:var(--font-mono);">
+            <input type="checkbox" id="cb-alco" onchange="predict()"> Alcohol
+          </label>
+          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer; font-family:var(--font-mono);">
+            <input type="checkbox" id="cb-active" checked onchange="predict()"> Activo
+          </label>
+        </div>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card-title">Resultado de predicción</div>
+        <div class="pred-result-box">
+          <div class="pred-icon" id="pred-icon">❤️</div>
+          <div class="pred-label" id="pred-label">Bajo riesgo</div>
+          <div class="pred-conf-text" id="pred-conf">Confianza estimada: 71%</div>
+          <div class="pred-bars" style="margin-top:8px;">
+            <div style="font-size:10px; color:var(--muted); font-family:var(--font-mono); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Score por modelo</div>
+            <div class="pred-bar-row"><span class="pred-bar-name">Red Neuronal</span><div class="pred-bar-track"><div class="pred-bar-fill" id="pb-nn" style="background:var(--accent4); width:40%"></div></div><span class="pred-bar-pct" id="pt-nn">40%</span></div>
+            <div class="pred-bar-row"><span class="pred-bar-name">Reg. Logística</span><div class="pred-bar-track"><div class="pred-bar-fill" id="pb-lr" style="background:var(--accent2); width:38%"></div></div><span class="pred-bar-pct" id="pt-lr">38%</span></div>
+            <div class="pred-bar-row"><span class="pred-bar-name">Árbol Decisión</span><div class="pred-bar-track"><div class="pred-bar-fill" id="pb-dt" style="background:var(--accent3); width:35%"></div></div><span class="pred-bar-pct" id="pt-dt">35%</span></div>
+            <div class="pred-bar-row"><span class="pred-bar-name">SVM</span><div class="pred-bar-track"><div class="pred-bar-fill" id="pb-svm" style="background:var(--accent5); width:48%"></div></div><span class="pred-bar-pct" id="pt-svm">48%</span></div>
+          </div>
+          <div class="disclaimer">Simulación basada en patrones del modelo.<br>No sustituye diagnóstico médico profesional.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const MODELS = ['Red Neuronal','Reg. Logística','Árbol Decisión','K-Means','SVM'];
+const COLORS  = ['#5b8af5','#3fb68b','#f0a500','#b07aff','#e85d75'];
+const ACC  = [0.7283, 0.7262, 0.7239, 0.6657, 0.4819];
+const PREC = [0.7520, 0.7491, 0.7436, 0.6949, 0.4704];
+const REC  = [0.6581, 0.6566, 0.6594, 0.5565, 0.5243];
+const F1   = [0.7019, 0.6998, 0.6990, 0.6181, 0.4959];
+
+const CM = {
+  nn:  { tn:5408, fp:1397, fn:2200, tp:4235 },
+  lr:  { tn:5390, fp:1415, fn:2210, tp:4225 },
+  dt:  { tn:5342, fp:1463, fn:2192, tp:4243 },
+  svm: { tn:3006, fp:3799, fn:3061, tp:3374 },
+  km:  { tn:5233, fp:1572, fn:2854, tp:3581 }
+};
+const CM_NAMES = {
+  nn:'Red Neuronal', lr:'Reg. Logística', dt:'Árbol de Decisión', svm:'SVM', km:'K-Means'
+};
+const CM_INSIGHT = {
+  nn: '<strong>Red Neuronal:</strong> Mayor accuracy (72.8%). Detecta 4,235 enfermos correctamente. FN: 2,200.',
+  lr: '<strong>Reg. Logística:</strong> Rendimiento muy similar a la Red Neuronal. FN: 2,210.',
+  dt: '<strong>Árbol de Decisión:</strong> Menor FN de los modelos (2,192). Más conservador clínicamente.',
+  svm: '<strong>SVM:</strong> El modelo más débil con accuracy 48.2%. Alto FP (3,799) y FN (3,061) — no recomendado para este dataset.',
+  km: '<strong>K-Means (Clustering):</strong> Usado como referencia no supervisada. Mayor FN (2,854) que los supervisados.'
+};
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function pct(v) { return (v*100).toFixed(1)+'%'; }
+function num(v)  { return v.toLocaleString(); }
+
+// ── RANK BARS ────────────────────────────────────────────────────────
+function buildRank(containerId, data, colors, models, format, badges) {
+  const el = document.getElementById(containerId);
+  const max = Math.max(...data);
+  el.innerHTML = models.map((m,i) => {
+    const pct = (data[i]/max*100).toFixed(1);
+    const val = typeof format === 'function' ? format(data[i]) : data[i];
+    const badge = badges && badges[i] ? `<span class="${badges[i].cls}">${badges[i].txt}</span>` : '';
+    return `<div class="rank-row">
+      <div class="rank-model">
+        <div class="rank-dot" style="background:${colors[i]}"></div>
+        ${m} ${badge}
+      </div>
+      <div class="rank-track"><div class="rank-fill" style="width:${pct}%;background:${colors[i]}"></div></div>
+      <div class="rank-num" style="color:${colors[i]}">${val}</div>
+    </div>`;
+  }).join('');
+}
+
+const accBadges = [
+  {cls:'badge-best',txt:'mejor'},
+  null, null,
+  {cls:'badge-warn',txt:'clustering'},
+  {cls:'badge-low',txt:'débil'}
+];
+buildRank('rank-accuracy', ACC, COLORS, MODELS, v => (v*100).toFixed(1)+'%', accBadges);
+
+// FN rank (ascending = better → invert for bar width)
+const FN_VALS = [2200, 2210, 2192, 3061, 2854];
+const FN_MODELS = ['Red Neuronal','Reg. Logística','Árbol Decisión','SVM','K-Means'];
+const FN_COLORS = ['#5b8af5','#3fb68b','#f0a500','#e85d75','#b07aff'];
+const maxFN = Math.max(...FN_VALS);
+const fnBadges = [null,null,{cls:'badge-best',txt:'menor FN'},{cls:'badge-low',txt:'peor'},{cls:'badge-warn',txt:'clustering'}];
+document.getElementById('rank-fn').innerHTML = FN_MODELS.map((m,i)=>{
+  const pct = (FN_VALS[i]/maxFN*100).toFixed(1);
+  const badge = fnBadges[i] ? `<span class="${fnBadges[i].cls}">${fnBadges[i].txt}</span>` : '';
+  return `<div class="rank-row">
+    <div class="rank-model"><div class="rank-dot" style="background:${FN_COLORS[i]}"></div>${m} ${badge}</div>
+    <div class="rank-track"><div class="rank-fill" style="width:${pct}%;background:${FN_COLORS[i]}"></div></div>
+    <div class="rank-num" style="color:${FN_COLORS[i]}">${FN_VALS[i].toLocaleString()}</div>
+  </div>`;
+}).join('');
+
+// ── CHARTS ──────────────────────────────────────────────────────────
+const baseOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  animation: { duration: 600 }
+};
+
+// F1 bar
+new Chart(document.getElementById('chart-f1'), {
+  type: 'bar',
+  data: {
+    labels: MODELS,
+    datasets: [{ data: F1.map(v=>+(v*100).toFixed(2)), backgroundColor: COLORS, borderRadius: 6 }]
+  },
+  options: { ...baseOpts, scales: { y: { min: 40, max: 80, grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'#7d8590', callback: v=>v+'%' } }, x: { grid: { display:false }, ticks: { color:'#7d8590', font:{size:11} } } } }
+});
+
+// Precision vs Recall grouped
+new Chart(document.getElementById('chart-prec-rec'), {
+  type: 'bar',
+  data: {
+    labels: MODELS,
+    datasets: [
+      { label:'Precision', data: PREC.map(v=>+(v*100).toFixed(2)), backgroundColor:'#5b8af5', borderRadius:4 },
+      { label:'Recall',    data: REC.map(v=>+(v*100).toFixed(2)),  backgroundColor:'#e85d75', borderRadius:4 }
+    ]
+  },
+  options: { ...baseOpts, plugins:{legend:{display:false}}, scales: { y: { min:40, max:80, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#7d8590',callback:v=>v+'%'} }, x:{grid:{display:false},ticks:{color:'#7d8590',font:{size:11}}} } }
+});
+
+// Radar
+new Chart(document.getElementById('chart-radar'), {
+  type: 'radar',
+  data: {
+    labels: ['Accuracy','Precision','Recall','F1-Score'],
+    datasets: MODELS.map((m,i) => ({
+      label: m,
+      data: [ACC[i], PREC[i], REC[i], F1[i]].map(v=>+(v*100).toFixed(1)),
+      borderColor: COLORS[i],
+      backgroundColor: COLORS[i]+'22',
+      borderWidth: 2,
+      pointBackgroundColor: COLORS[i],
+      pointRadius: 4
+    }))
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:true, position:'right', labels:{ color:'#7d8590', font:{size:11}, boxWidth:10, padding:10 } } },
+    scales:{ r:{ min:40, max:80, grid:{color:'rgba(255,255,255,0.06)'}, angleLines:{color:'rgba(255,255,255,0.06)'}, ticks:{display:false}, pointLabels:{color:'#7d8590',font:{size:12}} } }
+  }
+});
+
+// Accuracy horizontal
+new Chart(document.getElementById('chart-acc-h'), {
+  type: 'bar',
+  data: {
+    labels: MODELS,
+    datasets: [{ data: ACC.map(v=>+(v*100).toFixed(2)), backgroundColor: COLORS, borderRadius: 5 }]
+  },
+  options: {
+    ...baseOpts, indexAxis:'y',
+    scales:{ x:{min:40,max:80,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7d8590',callback:v=>v+'%'}}, y:{grid:{display:false},ticks:{color:'#7d8590',font:{size:11}}} }
+  }
+});
+
+// Error comparison FP vs FN
+new Chart(document.getElementById('chart-errors'), {
+  type: 'bar',
+  data: {
+    labels: ['Red Neuronal','Reg. Logística','Árbol Decisión','SVM','K-Means'],
+    datasets: [
+      { label:'FP (Error T1)', data:[1397,1415,1463,3799,1572], backgroundColor:'#e85d7566', borderColor:'#e85d75', borderWidth:1, borderRadius:4 },
+      { label:'FN (Error T2)', data:[2200,2210,2192,3061,2854], backgroundColor:'#f0a50066', borderColor:'#f0a500', borderWidth:1, borderRadius:4 }
+    ]
+  },
+  options: {
+    ...baseOpts,
+    plugins:{ legend:{ display:true, labels:{color:'#7d8590',font:{size:11},boxWidth:10} } },
+    scales:{ y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7d8590'}}, x:{grid:{display:false},ticks:{color:'#7d8590',font:{size:10}}} }
+  }
+});
+
+// Class distribution
+new Chart(document.getElementById('chart-dist'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Sanos (cardio=0)','Enfermos (cardio=1)'],
+    datasets: [{ data:[50.2,49.8], backgroundColor:['#3fb68b','#e85d75'], borderWidth:0 }]
+  },
+  options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{legend:{display:true, position:'right', labels:{color:'#7d8590',font:{size:11},boxWidth:10}}} }
+});
+
+// Data types
+new Chart(document.getElementById('chart-dtypes'), {
+  type: 'bar',
+  data: {
+    labels: ['float64','int64','object'],
+    datasets: [{ data:[6,11,1], backgroundColor:['#5b8af5','#3fb68b','#b07aff'], borderRadius:5 }]
+  },
+  options: {
+    ...baseOpts,
+    scales:{ y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7d8590',stepSize:2}}, x:{grid:{display:false},ticks:{color:'#7d8590'}} }
+  }
+});
+
+// ── CONFUSION MATRIX ─────────────────────────────────────────────────
+function showCM(key, btn) {
+  const d = CM[key];
+  document.getElementById('cm-tn').textContent = d.tn.toLocaleString();
+  document.getElementById('cm-fp').textContent = d.fp.toLocaleString();
+  document.getElementById('cm-fn').textContent = d.fn.toLocaleString();
+  document.getElementById('cm-tp').textContent = d.tp.toLocaleString();
+  document.getElementById('cm-title').textContent = 'Matriz de confusión — ' + CM_NAMES[key];
+  document.getElementById('cm-insight').innerHTML = CM_INSIGHT[key];
+  document.querySelectorAll('.model-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── TAB SWITCHER ─────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── PREDICTION ENGINE ────────────────────────────────────────────────
+function predict() {
+  const age   = +document.getElementById('sl-age').value;
+  const ap_hi = +document.getElementById('sl-ap_hi').value;
+  const ap_lo = +document.getElementById('sl-ap_lo').value;
+  const bmi   = +document.getElementById('sl-bmi').value;
+  const chol  = +document.getElementById('sl-chol').value;
+  const gluc  = +document.getElementById('sl-gluc').value;
+  const smoke = document.getElementById('cb-smoke').checked ? 1 : 0;
+  const alco  = document.getElementById('cb-alco').checked ? 1 : 0;
+  const active= document.getElementById('cb-active').checked ? 1 : 0;
+
+  document.getElementById('val-age').textContent   = age;
+  document.getElementById('val-ap_hi').textContent = ap_hi;
+  document.getElementById('val-ap_lo').textContent = ap_lo;
+  document.getElementById('val-bmi').textContent   = bmi.toFixed(1);
+  document.getElementById('val-chol').textContent  = chol;
+  document.getElementById('val-gluc').textContent  = gluc;
+
+  // Risk score heuristic based on model patterns
+  let score = 0;
+  score += (age - 40) * 0.018;
+  score += (ap_hi - 120) * 0.016;
+  score += (ap_lo - 80) * 0.010;
+  score += (bmi - 25) * 0.022;
+  score += (chol - 1) * 0.12;
+  score += (gluc - 1) * 0.08;
+  score += smoke * 0.05;
+  score += alco * 0.03;
+  score -= active * 0.06;
+
+  // Sigmoid-like normalization
+  const rawRisk = Math.max(0, Math.min(1, 0.35 + score * 0.25));
+
+  // Per-model variation
+  const nnRisk  = Math.min(0.99, rawRisk * 1.00);
+  const lrRisk  = Math.min(0.99, rawRisk * 0.99);
+  const dtRisk  = Math.min(0.99, rawRisk * 1.02);
+  const svmRisk = Math.min(0.99, rawRisk * 0.85 + 0.08);
+
+  const avg = (nnRisk + lrRisk + dtRisk + svmRisk) / 4;
+  const isRisk = avg > 0.5;
+
+  const icon = document.getElementById('pred-icon');
+  const label = document.getElementById('pred-label');
+  const conf = document.getElementById('pred-conf');
+  icon.className = 'pred-icon ' + (isRisk ? 'risk' : 'safe');
+  icon.textContent = isRisk ? '⚠️' : '✅';
+  label.className = 'pred-label ' + (isRisk ? 'risk' : 'safe');
+  label.textContent = isRisk ? 'Alto riesgo cardiovascular' : 'Bajo riesgo cardiovascular';
+  conf.textContent = 'Confianza estimada: ' + Math.round(Math.abs(avg-0.5)*2*100) + '%  |  Score: ' + (avg*100).toFixed(1) + '%';
+
+  function setBar(id, pt, val, color) {
+    const pct = Math.round(val*100);
+    document.getElementById(id).style.width = pct+'%';
+    document.getElementById(id).style.background = color;
+    document.getElementById(pt).textContent = pct+'%';
+  }
+  setBar('pb-nn','pt-nn', nnRisk,  '#5b8af5');
+  setBar('pb-lr','pt-lr', lrRisk,  '#3fb68b');
+  setBar('pb-dt','pt-dt', dtRisk,  '#f0a500');
+  setBar('pb-svm','pt-svm', svmRisk, '#b07aff');
+}
+
+predict();
+</script>
+</body>
+</html>
